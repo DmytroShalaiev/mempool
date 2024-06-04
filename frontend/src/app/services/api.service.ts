@@ -253,8 +253,9 @@ export class ApiService {
     )
     .pipe(
       map((response) => {
-        response.body.pools.forEach((pool) => {
-          if (pool.poolUniqueId === 0) {
+        const pools = interval !== undefined ? response.body.pools : response.body;
+        pools.forEach((pool) => {
+          if ((interval !== undefined && pool.poolUniqueId === 0) || (interval === undefined && pool.unique_id === 0)) {
             pool.name = $localize`:@@e5d8bb389c702588877f039d72178f219453a72d:Unknown`;
           }
         });
@@ -402,9 +403,13 @@ export class ApiService {
     return this.httpClient.get<any[]>(this.apiBaseUrl + this.apiBasePath + '/api/v1/lightning/channels/txids/', { params });
   }
 
-  lightningSearch$(searchText: string): Observable<any[]> {
+  lightningSearch$(searchText: string): Observable<{ nodes: any[], channels: any[] }> {
     let params = new HttpParams().set('searchText', searchText);
-    return this.httpClient.get<any[]>(this.apiBaseUrl + this.apiBasePath + '/api/v1/lightning/search', { params });
+    // Don't request the backend if searchText is less than 3 characters
+    if (searchText.length < 3) {
+      return of({ nodes: [], channels: [] });
+    }
+    return this.httpClient.get<{ nodes: any[], channels: any[] }>(this.apiBaseUrl + this.apiBasePath + '/api/v1/lightning/search', { params });
   }
 
   getNodesPerIsp(): Observable<any> {
